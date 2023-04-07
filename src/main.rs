@@ -11,12 +11,10 @@ struct Stats<T> {
 }
 
 fn main() {
-    let cap: u32 = 30000;
+    let cap: u32 = env::args().nth(1).unwrap_or("10000".to_string()).parse().unwrap_or(10000);
     // let arg_fixed = env::args().find(|x| x.to_lowercase().cmp(&"--fixed".to_string()) == Ordering::Equal).is_some();
     // let arg_reversed = env::args().find(|x| x.to_lowercase().cmp(&"--reverse".to_string()) == Ordering::Equal).is_some();
 
-    // println!("{}", std::mem::size_of::<usize>());
-    
     let v: Vec<u16> = {
         let mut tmpv: Vec<u16> = vec![];
         for _ in 0..cap {
