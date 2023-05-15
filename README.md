@@ -1,18 +1,18 @@
 # Sorting algorithms in Rust for learning purposes
 
-Right now there's is four implemented:
+Right now there's is five implemented:
 
     1. Bubble sort
     2. Selection sort
     3. Insertion sort
     4. Merge sort
+    5. Quick sort
 
 The idea is to implement the following:
 
-    1. Quick sort
-    2. Random quick sort
-    3. Counting sort
-    4. Radix sort
+    1. Random quick sort
+    2. Counting sort
+    3. Radix sort
 
 Accept an optional positional parameter with the number of randomly generated numbers for sorting:
 
