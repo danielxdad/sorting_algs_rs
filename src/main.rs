@@ -4,14 +4,24 @@ use rand::prelude::*;
 
 type SortFnPointer<'a> = &'a dyn Fn(Vec<u16>) -> Stats<u16>;
 
+#[derive(Default)]
 struct Stats<T> {
     cmp_counter: usize,
     swap_counter: usize,
     ordered: Vec<T>,
 }
 
+/* impl <T: Ord + Copy + Default> Stats<T> {
+    fn default_with_ordered_as(v: Vec<T>) -> Self {
+        let mut tmp = Stats::default();
+        tmp.ordered = v;
+        tmp
+    }
+} */
+
 fn main() {
-    let cap: u32 = env::args().nth(1).unwrap_or("10000".to_string()).parse().unwrap_or(10000);
+    let cap: u32 = env::args().nth(1).unwrap_or("1000".to_string()).parse().unwrap_or(1000);
+    let alg_name = env::args().nth(2).unwrap_or("".to_string()).to_lowercase();
     // let arg_fixed = env::args().find(|x| x.to_lowercase().cmp(&"--fixed".to_string()) == Ordering::Equal).is_some();
     // let arg_reversed = env::args().find(|x| x.to_lowercase().cmp(&"--reverse".to_string()) == Ordering::Equal).is_some();
 
@@ -46,14 +56,19 @@ fn main() {
         println!("Length of v: {}\n", v.len());
     }
 
-    let funcs: [(&str, SortFnPointer); 4] = [
+    let funcs: [(&str, SortFnPointer); 5] = [
         ("Bubble sort",     &bubble_sort),
         ("Selection sort",  &selection_sort),
         ("Insertion sort",  &insertion_sort),
-        ("Merge sort",      &merge_sort)
+        ("Merge sort",      &merge_sort),
+        ("Quick sort",      &quick_sort)
     ];
 
     for (name, f) in funcs {
+        if alg_name.len() > 0 && !name.to_lowercase().contains(&alg_name) {
+            continue;
+        }
+
         println!("{}:", name);
 
         let begin = Instant::now();
@@ -221,5 +236,45 @@ fn merge_sort<T>(v: Vec<T>) -> Stats<T> where T: Ord + Debug + Copy {
     // assert!(result.len() == v.len(), "result={}, v={}", result.len(), v.len());
 
     stats.ordered = result;
+    stats
+}
+
+fn quick_sort<T>(mut v: Vec<T>) -> Stats<T> where T: Ord + Debug + Copy + Default {    
+    if v.len() < 2 {
+        return Stats { ordered: v, cmp_counter: 1, swap_counter: 0 };
+    }
+
+    let mut pivot_index = v.len() - 1;
+    let mut index = 0;
+    let mut stats = Stats { ordered: vec![], cmp_counter: 0, swap_counter: 0 };
+    let pivot_value = v[pivot_index];
+
+    while index < pivot_index {
+        if v[index] > pivot_value {
+            let tmp = v.remove(index);
+            v.push(tmp);
+            pivot_index -= 1;
+
+            stats.swap_counter += 2;
+
+        } else {
+            index += 1;
+        }
+
+        stats.cmp_counter += 2;
+    }
+
+    let mut left = quick_sort(v[ 0..pivot_index ].to_vec());
+    let mut right = quick_sort(v[ (pivot_index + 1)..v.len() ].to_vec());
+
+    v.clear();
+    v.append(&mut left.ordered);
+    v.push(pivot_value);
+    v.append(&mut right.ordered);
+
+    stats.cmp_counter += left.cmp_counter;
+    stats.swap_counter += left.swap_counter;
+    stats.ordered = v;
+
     stats
 }
