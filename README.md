@@ -7,12 +7,12 @@ Right now there's is five implemented:
     3. Insertion sort
     4. Merge sort
     5. Quick sort
+    6. Radix sort
 
 The idea is to implement the following:
 
     1. Random quick sort
     2. Counting sort
-    3. Radix sort
 
 Accept an optional positional parameter with the number of randomly generated numbers for sorting:
 
