@@ -1,8 +1,8 @@
-#[allow(unused_imports)]
-use std::{env, cmp::Ordering, fmt::Debug, time::Instant};
+use std::{env, fmt::Debug, time::Instant};
+use std::collections::BTreeMap;
 use rand::prelude::*;
 
-type SortFnPointer<'a> = &'a dyn Fn(Vec<u16>) -> Stats<u16>;
+type SortFnPointer<'a> = &'a dyn Fn(Vec<u32>) -> Stats<u32>;
 
 #[derive(Default)]
 struct Stats<T> {
@@ -25,43 +25,34 @@ fn main() {
     // let arg_fixed = env::args().find(|x| x.to_lowercase().cmp(&"--fixed".to_string()) == Ordering::Equal).is_some();
     // let arg_reversed = env::args().find(|x| x.to_lowercase().cmp(&"--reverse".to_string()) == Ordering::Equal).is_some();
 
-    let v: Vec<u16> = {
-        let mut tmpv: Vec<u16> = vec![];
+    let v = {
+        let mut tmpv: Vec<u32> = vec![];
         for _ in 0..cap {
-            tmpv.push(random::<u16>() % 100);
+            tmpv.push(random::<u32>() % 1024);
         }
         tmpv
-        // if arg_fixed {
-        //     if arg_reversed {
-        //         tmpv = (1..(cap + 1 as u16)).into_iter().rev().collect();
-        //     } else {
-        //         tmpv = (1..(cap + 1 as u16)).into_iter().collect();
-        //     }
-        // } else {
-        //     for _ in 0..cap {
-        //         tmpv.push(random::<u16>() % 100);
-        //     }
-        // }
     };
 
     let mut v_sorted = v.clone();
+
     v_sorted.sort();
 
     assert!(v.len() > 1);
 
-    if v.len() < 50 {
+    if v.len() < 30 {
         println!("Unordered: {:?}", v);
         println!("Ordered:   {:?}\n", v_sorted);
     } else {
         println!("Length of v: {}\n", v.len());
     }
 
-    let funcs: [(&str, SortFnPointer); 5] = [
+    let funcs: [(&str, SortFnPointer); 6] = [
         ("Bubble sort",     &bubble_sort),
         ("Selection sort",  &selection_sort),
         ("Insertion sort",  &insertion_sort),
         ("Merge sort",      &merge_sort),
-        ("Quick sort",      &quick_sort)
+        ("Quick sort",      &quick_sort),
+        ("Radix sort",      &radix_sort)
     ];
 
     for (name, f) in funcs {
@@ -70,9 +61,10 @@ fn main() {
         }
 
         println!("{}:", name);
-
+        
+        let cloned = v.clone();
         let begin = Instant::now();
-        let stat = f(v.clone());
+        let stat = f(cloned);
         let duration = Instant::now() - begin;
 
         if stat.ordered.len() < 50 {
@@ -82,7 +74,7 @@ fn main() {
         println!("\tSwap counter: {}", stat.swap_counter);
         println!("\tComp counter: {}", stat.cmp_counter);
         println!("\tTotal ops:    {}", stat.cmp_counter + stat.swap_counter);
-        println!("\tDuration:     {} ms", duration.as_millis());
+        println!("\tDuration:     {} μs", duration.as_micros());
         println!("");
 
         assert!(stat.ordered == v_sorted);
@@ -110,7 +102,6 @@ fn bubble_sort<T: Ord + Debug + Copy>(mut v: Vec<T>) -> Stats<T> {
         }
     }
 
-    
     Stats { ordered: v, cmp_counter, swap_counter }
 }
 
@@ -276,5 +267,37 @@ fn quick_sort<T>(mut v: Vec<T>) -> Stats<T> where T: Ord + Debug + Copy + Defaul
     stats.swap_counter += left.swap_counter;
     stats.ordered = v;
 
+    stats
+}
+
+fn radix_sort(mut v: Vec<u32>) -> Stats<u32> { // where T: Ord + Debug + Copy + Default + std::ops::Div<u32> + std::ops::Rem<u32>
+    if v.len() < 2 {
+        return Stats { ordered: v, cmp_counter: 1, swap_counter: 0 };
+    }
+
+    let mut stats = Stats { ordered: vec![], cmp_counter: 0, swap_counter: 0 };
+    let mut bucket: BTreeMap<_, Vec<u32>> = (0..10).map(|n| (n, vec![])).collect();
+
+    for dp in 0..(u32::MAX as f64).log10().ceil() as u32 {
+        let div = 10_u32.pow(dp);
+
+        for i in 0..v.len() {
+            let key = v[i] / div % 10;
+            bucket.entry(key)
+                .and_modify(|e| e.push(v[i]))
+                .or_insert(vec![]);
+
+            stats.swap_counter += 4;
+        }
+
+        v.clear();
+
+        bucket.iter_mut().for_each(|(_, e)| {
+            v.append(e);
+            stats.swap_counter += 1;
+        });
+    }
+
+    stats.ordered = v;
     stats
 }
